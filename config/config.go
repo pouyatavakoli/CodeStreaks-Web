@@ -16,6 +16,7 @@ type Config struct {
 	DatabaseName          string
 	ServerPort            string
 	UpdateIntervalMinutes int
+	SSLMode               string
 }
 
 func Load() (*Config, error) {
@@ -55,6 +56,12 @@ func Load() (*Config, error) {
 	cfg.ServerPort = os.Getenv("SERVER_PORT")
 	if cfg.ServerPort == "" {
 		cfg.ServerPort = "8080"
+	}
+
+	// Optional: ssl mode (default: disable)
+	cfg.SSLMode = os.Getenv("DB_SSLMODE")
+	if cfg.SSLMode == "" {
+		cfg.SSLMode = "disable"
 	}
 
 	// Optional: UPDATE_INTERVAL_MINUTES (default: 60)
