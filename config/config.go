@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"strconv"
 
@@ -9,72 +9,64 @@ import (
 )
 
 type Config struct {
-	DatabaseHost          string
-	DatabasePort          int
-	DatabaseUser          string
-	DatabasePassword      string
-	DatabaseName          string
-	ServerPort            string
-	UpdateIntervalMinutes int
-	SSLMode               string
+	Database   DatabaseConfig
+	Server     ServerConfig
+	Codeforces CodeforcesConfig
 }
 
-func Load() (*Config, error) {
-	_ = godotenv.Load()
+type DatabaseConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
+	SSLMode  string
+}
 
-	cfg := &Config{}
+type ServerConfig struct {
+	Port string
+	Env  string
+}
 
-	// Required variables
-	required := map[string]*string{
-		"DB_HOST":     &cfg.DatabaseHost,
-		"DB_USER":     &cfg.DatabaseUser,
-		"DB_PASSWORD": &cfg.DatabasePassword,
-		"DB_NAME":     &cfg.DatabaseName,
+type CodeforcesConfig struct {
+	BaseURL        string
+	WorkerPoolSize int
+	UpdateInterval int // seconds
+}
+
+func Load() *Config {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
 	}
 
-	for key, target := range required {
-		value := os.Getenv(key)
-		if value == "" {
-			return nil, fmt.Errorf("missing required environment variable: %s", key)
-		}
-		*target = value
-	}
+	dbPort, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
+	workerPoolSize, _ := strconv.Atoi(getEnv("WORKER_POOL_SIZE", "10"))
+	updateInterval, _ := strconv.Atoi(getEnv("UPDATE_INTERVAL", "60"))
 
-	// DB_PORT (required, int)
-	dbPortStr := os.Getenv("DB_PORT")
-	if dbPortStr == "" {
-		return nil, fmt.Errorf("missing required environment variable: DB_PORT")
+	return &Config{
+		Database: DatabaseConfig{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     dbPort,
+			User:     getEnv("DB_USER", "postgres"),
+			Password: getEnv("DB_PASSWORD", "postgres"),
+			DBName:   getEnv("DB_NAME", "codeforces_leaderboard"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+		Server: ServerConfig{
+			Port: getEnv("SERVER_PORT", "8080"),
+			Env:  getEnv("ENV", "development"),
+		},
+		Codeforces: CodeforcesConfig{
+			BaseURL:        getEnv("CODEFORCES_API_URL", "https://codeforces.com/api"),
+			WorkerPoolSize: workerPoolSize,
+			UpdateInterval: updateInterval,
+		},
 	}
+}
 
-	dbPort, err := strconv.Atoi(dbPortStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid DB_PORT value: %w", err)
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
 	}
-	cfg.DatabasePort = dbPort
-
-	// Optional: SERVER_PORT (default: 8080)
-	cfg.ServerPort = os.Getenv("SERVER_PORT")
-	if cfg.ServerPort == "" {
-		cfg.ServerPort = "8080"
-	}
-
-	// Optional: ssl mode (default: disable)
-	cfg.SSLMode = os.Getenv("DB_SSLMODE")
-	if cfg.SSLMode == "" {
-		cfg.SSLMode = "disable"
-	}
-
-	// Optional: UPDATE_INTERVAL_MINUTES (default: 60)
-	updateIntervalStr := os.Getenv("UPDATE_INTERVAL_MINUTES")
-	if updateIntervalStr == "" {
-		cfg.UpdateIntervalMinutes = 60
-	} else {
-		interval, err := strconv.Atoi(updateIntervalStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid UPDATE_INTERVAL_MINUTES value: %w", err)
-		}
-		cfg.UpdateIntervalMinutes = interval
-	}
-
-	return cfg, nil
+	return fallback
 }
