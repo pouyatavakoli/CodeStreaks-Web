@@ -1,124 +1,83 @@
 package database
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
-	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/pouyatavakoli/CodeStreaks-web/config"
+	"github.com/pouyatavakoli/CodeStreaks-web/internal/domain"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-type DBConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
+type Database struct {
+	DB *gorm.DB
 }
 
-func NewPostgresDB(cfg *DBConfig) (*sql.DB, error) {
-	dsn := buildDSN(cfg)
-
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database connection: %w", err)
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
-	}
-
-	configureConnectionPool(db)
-
-	return db, nil
-}
-
-func NewPostgresDBFromAppConfig(cfg *config.Config) (*sql.DB, error) {
-	dbConfig := DBConfigFromAppConfig(cfg)
-	return NewPostgresDB(&dbConfig)
-}
-
-func DBConfigFromAppConfig(cfg *config.Config) DBConfig {
-	return DBConfig{
-		Host:     cfg.DatabaseHost,
-		Port:     fmt.Sprintf("%d", cfg.DatabasePort),
-		User:     cfg.DatabaseUser,
-		Password: cfg.DatabasePassword,
-		DBName:   cfg.DatabaseName,
-		SSLMode:  cfg.SSLMode,
-	}
-}
-
-func buildDSN(cfg *DBConfig) string {
-	// Format: postgresql://username:password@host:port/dbname?sslmode=mode
-	return fmt.Sprintf(
-		"postgresql://%s:%s@%s:%s/%s?sslmode=%s",
-		cfg.User,
-		cfg.Password,
-		cfg.Host,
-		cfg.Port,
-		cfg.DBName,
-		cfg.SSLMode,
+func NewDatabase(cfg *config.DatabaseConfig) (*Database, error) {
+	dsn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode,
 	)
-}
 
-func configureConnectionPool(db *sql.DB) {
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
-	db.SetConnMaxIdleTime(5 * time.Minute)
-}
-
-func HealthCheck(db *sql.DB) error {
-	if db == nil {
-		return fmt.Errorf("database connection is nil")
+	logLevel := logger.Silent
+	if cfg.SSLMode == "disable" {
+		logLevel = logger.Info
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	return db.PingContext(ctx)
-}
-
-func HealthCheckWithContext(ctx context.Context, db *sql.DB) error {
-	if db == nil {
-		return fmt.Errorf("database connection is nil")
-	}
-
-	return db.PingContext(ctx)
-}
-
-func CloseDB(db *sql.DB) error {
-	if db == nil {
-		return nil
-	}
-
-	return db.Close()
-}
-
-func Stats(db *sql.DB) sql.DBStats {
-	if db == nil {
-		return sql.DBStats{}
-	}
-	return db.Stats()
-}
-
-func TestConnection(db *sql.DB) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	var result int
-	err := db.QueryRowContext(ctx, "SELECT 1").Scan(&result)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logLevel),
+		NowFunc: func() time.Time {
+			return time.Now().UTC()
+		},
+	})
 	if err != nil {
-		return fmt.Errorf("test query failed: %w", err)
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	if result != 1 {
-		return fmt.Errorf("unexpected test result: %d", result)
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
+	// Connection pool settings
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	log.Println("Database connected successfully")
+
+	return &Database{DB: db}, nil
+}
+
+func (d *Database) AutoMigrate() error {
+	log.Println("Running database migrations...")
+
+	if err := d.DB.AutoMigrate(
+		&domain.User{},
+		&domain.Submission{},
+	); err != nil {
+		return fmt.Errorf("failed to migrate database: %w", err)
+	}
+
+	log.Println("Database migrations completed successfully")
 	return nil
+}
+
+func (d *Database) Close() error {
+	sqlDB, err := d.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
+func (d *Database) HealthCheck() error {
+	sqlDB, err := d.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Ping()
 }
