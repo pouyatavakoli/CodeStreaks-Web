@@ -170,11 +170,11 @@ func (s *syncService) storeSubmissions(userID uint, cfSubmissions []domain.Codef
 		submission := domain.Submission{
 			UserID:                 userID,
 			CodeforcesSubmissionID: int64(cfSub.ID),
-			ProblemName:            cfSub.Problem.Name,
-			ContestID:              cfSub.ContestID,
-			ProblemIndex:           cfSub.Problem.Index,
+			//ProblemName:            cfSub.Problem.Name,
+			//ContestID:              cfSub.ContestID,
+			//ProblemIndex:           cfSub.Problem.Index,
 			Verdict:                cfSub.Verdict,
-			ProgrammingLanguage:    cfSub.ProgrammingLanguage,
+			//ProgrammingLanguage:    cfSub.ProgrammingLanguage,
 			SubmittedAt:            time.Unix(cfSub.CreationTimeSeconds, 0),
 		}
 
