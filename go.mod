@@ -5,6 +5,7 @@ go 1.24.5
 require github.com/joho/godotenv v1.5.1
 
 require (
+	github.com/robfig/cron/v3 v3.0.1
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
 )
