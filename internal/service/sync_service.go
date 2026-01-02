@@ -116,8 +116,8 @@ func (s *syncService) worker(id int, jobs <-chan syncJob, results chan<- syncRes
 }
 
 func (s *syncService) SyncUser(user *domain.User) error {
-	// Fetch recent submissions (last 100)
-	submissions, err := s.cfClient.GetUserSubmissions(user.CodeforcesHandle, 100)
+	// Fetch recent submissions
+	submissions, err := s.cfClient.GetUserSubmissions(user.CodeforcesHandle, 5000)
 	if err != nil {
 		return err
 	}
@@ -193,29 +193,42 @@ func (s *syncService) calculateStreak(submissions []domain.CodeforcesSubmission)
 		return 0
 	}
 
+	tehranLoc, err := time.LoadLocation("Asia/Tehran")
+	if err != nil {
+		panic(err)
+	}
+
 	submissionsByDate := make(map[string]bool)
 	for _, sub := range submissions {
 		if sub.Verdict == "OK" {
-			date := time.Unix(sub.CreationTimeSeconds, 0).Format("2006-01-02")
-			submissionsByDate[date] = true
+			t := time.Unix(sub.CreationTimeSeconds, 0)
+			localDate := t.In(tehranLoc).Format("2006-01-02")
+			submissionsByDate[localDate] = true
 		}
 	}
 
+	now := time.Now().In(tehranLoc)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, tehranLoc)
+	yesterday := today.AddDate(0, 0, -1)
+
 	streak := 0
-	currentDate := time.Now()
+	currentDate := yesterday
 
 	for {
 		dateStr := currentDate.Format("2006-01-02")
+
 		if submissionsByDate[dateStr] {
 			streak++
 			currentDate = currentDate.AddDate(0, 0, -1)
 		} else {
-			if streak == 0 && dateStr == time.Now().Format("2006-01-02") {
-				currentDate = currentDate.AddDate(0, 0, -1)
-				continue
-			}
+			// Gap found → stop counting backward
 			break
 		}
+	}
+
+	// Finally, check if today has a submission — if yes, extend the streak
+	if submissionsByDate[today.Format("2006-01-02")] {
+		streak++
 	}
 
 	return streak
