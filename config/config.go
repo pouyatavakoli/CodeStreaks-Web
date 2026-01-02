@@ -49,7 +49,7 @@ func Load() *Config {
 			Port:     dbPort,
 			User:     getEnv("DB_USER", "postgres"),
 			Password: getEnv("DB_PASSWORD", "postgres"),
-			DBName:   getEnv("DB_NAME", "codeforces_leaderboard"),
+			DBName:   getEnv("DB_NAME", "CodeStreaks"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		Server: ServerConfig{

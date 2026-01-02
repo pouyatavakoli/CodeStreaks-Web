@@ -1,0 +1,43 @@
+.PHONY: help build run test clean docker-up docker-down migrate
+
+help: ## Display this help screen
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+build: ## Build the application
+	@echo "Building application..."
+	@go build -o bin/api cmd/api/main.go
+
+run: ## Run the application
+	@echo "Running application..."
+	@go run cmd/api/main.go
+
+test: ## Run tests
+	@echo "Running tests..."
+	@go test -v -cover ./...
+
+clean: ## Clean build artifacts
+	@echo "Cleaning..."
+	@rm -rf bin/
+	@go clean
+
+deps: ## Download dependencies
+	@echo "Downloading dependencies..."
+	@go mod download
+	@go mod tidy
+
+docker-up: ## Start docker containers
+	@echo "Starting docker containers..."
+	@docker-compose up -d
+
+docker-down: ## Stop docker containers
+	@echo "Stopping docker containers..."
+	@docker-compose down
+
+docker-logs: ## View docker logs
+	@docker-compose logs -f
+
+lint: ## Run linter
+	@echo "Running linter..."
+	@golangci-lint run
+
+dev: docker-up run ## Start development environment

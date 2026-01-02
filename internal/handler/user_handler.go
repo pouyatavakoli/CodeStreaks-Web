@@ -27,16 +27,16 @@ type ErrorResponse struct {
 }
 
 type SuccessResponse struct {
-	Message string      `json:"message"`
-	Data    any `json:"data,omitempty"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 
 type LeaderboardResponse struct {
-	Users      any `json:"users"`
-	Page       int         `json:"page"`
-	PageSize   int         `json:"page_size"`
-	Total      int64       `json:"total"`
-	TotalPages int         `json:"total_pages"`
+	Users      any   `json:"users"`
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	Total      int64 `json:"total"`
+	TotalPages int   `json:"total_pages"`
 }
 
 // AddUser godoc
