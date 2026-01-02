@@ -5,14 +5,18 @@ import (
 )
 
 type User struct {
-	ID               uint      `gorm:"primaryKey" json:"id"`
-	CodeforcesHandle string    `gorm:"uniqueIndex;not null" json:"codeforces_handle"`
-	CurrentStreak    int       `gorm:"default:0" json:"current_streak"`
-	MaxStreak        int       `gorm:"default:0" json:"max_streak"`
-	Rating           int       `gorm:"default:0" json:"rating"`
-	Rank             string    `json:"rank"`
-	CreatedAt        time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt        time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	ID               uint       `gorm:"primaryKey" json:"id"`
+	CodeforcesHandle string     `gorm:"uniqueIndex;not null" json:"codeforces_handle"`
+	CurrentStreak    int        `gorm:"default:0" json:"current_streak"`
+	MaxStreak        int        `gorm:"default:0" json:"max_streak"`
+	LastSubmissionAt *time.Time `json:"last_submission_at"`
+	Rating           int        `gorm:"default:0" json:"rating"`
+	Rank             string     `json:"rank"`
+	TotalSubmissions int        `gorm:"default:0" json:"total_submissions"`
+	IsActive         bool       `gorm:"default:true" json:"is_active"`
+	LastCheckedAt    *time.Time `json:"last_checked_at"`
+	CreatedAt        time.Time  `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt        time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
 }
 
 type UserResponse struct {
@@ -33,6 +37,7 @@ func (u *User) ToResponse(rank int) UserResponse {
 		CodeforcesHandle: u.CodeforcesHandle,
 		CurrentStreak:    u.CurrentStreak,
 		MaxStreak:        u.MaxStreak,
+		LastSubmissionAt: u.LastSubmissionAt,
 		Rating:           u.Rating,
 		Rank:             u.Rank,
 		LeaderboardRank:  rank,
