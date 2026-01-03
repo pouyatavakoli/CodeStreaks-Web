@@ -30,3 +30,17 @@ The Python project serves as the **reference specification** for behavior and ex
 | Interface | CLI                  | Web + HTTP API       |
 | Purpose   | Script / automation  | Service / website    |
 | Status    | Stable reference     | Active development   |
+
+# build and run
+
+```bash
+ go build -o bin/api cmd/api/main.go
+ go run cmd/api/main.go
+```
+
+add new user using the provided script `scripts/add_user.go`
+usage: 
+
+```
+go run add_user.go <handle>
+```
