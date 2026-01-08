@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_USER: codestreaks
       POSTGRES_PASSWORD: codestreaks
-      POSTGRES_DB: CodeStreaks
+      POSTGRES_DB: codestreaks
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -22,6 +22,13 @@ services:
     build: .
     container_name: codestreaks-api
     restart: unless-stopped
+    mem_limit: 512M
+    cpus: 0.5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.50"
     depends_on:
       postgres:
         condition: service_healthy
@@ -30,7 +37,7 @@ services:
       DB_PORT: "5432"
       DB_USER: codestreaks
       DB_PASSWORD: codestreaks
-      DB_NAME: CodeStreaks
+      DB_NAME: codestreaks
       DB_SSLMODE: disable
 
       SERVER_PORT: "8080"
@@ -42,6 +49,7 @@ services:
       CODEFORCES_API_URL: https://codeforces.com/api
     ports:
       - "8080:8080"
+
 
 volumes:
   postgres_data:
