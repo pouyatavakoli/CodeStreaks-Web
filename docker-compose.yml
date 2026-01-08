@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: codestreaks-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codestreaks
+      POSTGRES_PASSWORD: codestreaks
+      POSTGRES_DB: CodeStreaks
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codestreaks"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: codestreaks-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: codestreaks
+      DB_PASSWORD: codestreaks
+      DB_NAME: CodeStreaks
+      DB_SSLMODE: disable
+
+      SERVER_PORT: "8080"
+      ENV: production
+
+      WORKER_POOL_SIZE: "10"
+      UPDATE_INTERVAL: "60"
+
+      CODEFORCES_API_URL: https://codeforces.com/api
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
